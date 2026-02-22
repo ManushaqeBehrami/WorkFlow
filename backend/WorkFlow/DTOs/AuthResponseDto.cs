@@ -1,8 +1,10 @@
-﻿namespace WorkFlow.DTOs
+namespace WorkFlow.DTOs
 {
     public class AuthResponseDto
     {
-        public string Token { get; set; }
-        public string Role { get; set; }
+        public string AccessToken { get; set; } = null!;
+        public string TokenType { get; set; } = "Bearer";
+        public int ExpiresInSeconds { get; set; }
+        public string? RefreshToken { get; set; }
     }
 }

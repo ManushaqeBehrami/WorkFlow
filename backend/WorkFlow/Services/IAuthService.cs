@@ -4,7 +4,7 @@ namespace WorkFlow.Services
 {
     public interface IAuthService
     {
-        Task Register(RegisterDto dto);
-        Task<AuthResponseDto> Login(LoginDto dto);
+        Task<AuthResponseDto> RegisterAsync(RegisterDto dto);
+        Task<AuthResponseDto> LoginAsync(LoginDto dto);
     }
 }

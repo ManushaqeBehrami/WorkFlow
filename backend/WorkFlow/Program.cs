@@ -1,8 +1,11 @@
-using Microsoft.EntityFrameworkCore;
-using WorkFlow.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using WorkFlow.Data;
+using WorkFlow.Repositories;
+using WorkFlow.Services;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +22,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // MongoDB
 builder.Services.AddSingleton<MongoDbContext>();
+builder.Services.AddScoped<MongoService>();
 
 // JWT
 builder.Services.AddAuthentication(options =>
@@ -42,6 +46,59 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "WorkFlow API",
+        Version = "v1"
+    });
+
+    // ?? Add JWT authentication to Swagger
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter: Bearer {your JWT token}"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend",
+        policy =>
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        });
+});
+
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IPasswordService, PasswordService>();
+//builder.Services.AddScoped<ITokenService, TokenService>();
+
+
 var app = builder.Build();
 
 // Pipeline
@@ -55,4 +112,5 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.UseCors("AllowAll");
 app.Run();

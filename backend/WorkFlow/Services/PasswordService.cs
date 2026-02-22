@@ -1,15 +1,12 @@
-﻿using System.Security.Cryptography;
-using System.Text;
+﻿using BCrypt.Net;
 
 namespace WorkFlow.Services
 {
-    public static class PasswordService
+    public class PasswordService : IPasswordService
     {
-        public static string Hash(string password)
-        {
-            using var sha = SHA256.Create();
-            var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return Convert.ToBase64String(bytes);
-        }
+        public string Hash(string password)
+            => BCrypt.Net.BCrypt.HashPassword(password);
+        public bool Verify(string password, string hash)
+            => BCrypt.Net.BCrypt.Verify(password, hash);
     }
 }

@@ -1,12 +1,13 @@
-﻿namespace WorkFlow.DTOs
+﻿using WorkFlow.Models;
+
+namespace WorkFlow.DTOs
 {
     public class RegisterDto
     {
         public string FullName { get; set; } = null!;
         public string Email { get; set; } = null!;
         public string Password { get; set; } = null!;
-        public string Role { get; set; } = "Employee";
-
+        public UserRole Role { get; set; }
     }
 }
 

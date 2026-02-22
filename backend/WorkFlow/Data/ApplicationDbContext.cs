@@ -16,6 +16,8 @@ namespace WorkFlow.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            base.OnModelCreating(modelBuilder);
+
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
@@ -30,10 +32,18 @@ namespace WorkFlow.Data
                 .WithMany()
                 .HasForeignKey(s => s.UserId);
 
+            modelBuilder.Entity<Salary>()
+                .Property(s => s.BaseAmount)
+                .HasPrecision(18, 2);
+
             modelBuilder.Entity<Payment>()
                 .HasOne(p => p.User)
                 .WithMany()
                 .HasForeignKey(p => p.UserId);
+
+            modelBuilder.Entity<Payment>()
+                .Property(p => p.Amount)
+                .HasPrecision(18, 2);
         }
     }
 }

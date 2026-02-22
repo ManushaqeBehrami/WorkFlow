@@ -1,11 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using WorkFlow.Data;
+using Microsoft.AspNetCore.Mvc;
 using WorkFlow.DTOs;
-using WorkFlow.Models;
 using WorkFlow.Services;
 
 namespace WorkFlow.Controllers
@@ -14,71 +8,39 @@ namespace WorkFlow.Controllers
     [Route("api/auth")]
     public class AuthController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
-        private readonly IConfiguration _config;
+        private readonly IAuthService _authService;
 
-        public AuthController(ApplicationDbContext context, IConfiguration config)
+        public AuthController(IAuthService authService)
         {
-            _context = context;
-            _config = config;
+            _authService = authService;
         }
 
         [HttpPost("register")]
-        public IActionResult Register(RegisterDto dto)
+        public async Task<IActionResult> Register(RegisterDto dto)
         {
-            if (_context.Users.Any(u => u.Email == dto.Email))
-                return BadRequest("User already exists");
-
-            var user = new User
+            try
             {
-                FullName = dto.FullName,
-                Email = dto.Email,
-                PasswordHash = PasswordService.Hash(dto.Password),
-                Role = dto.Role
-            };
-
-            _context.Users.Add(user);
-            _context.SaveChanges();
-
-            return Ok("User registered");
+                var result = await _authService.RegisterAsync(dto);
+                return Ok(result);
+            }
+            catch (Exception ex) when (ex.Message == "User already exists")
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPost("login")]
-        public IActionResult Login(LoginDto dto)
+        public async Task<IActionResult> Login(LoginDto dto)
         {
-            var hash = PasswordService.Hash(dto.Password);
-
-            var user = _context.Users
-                .FirstOrDefault(u => u.Email == dto.Email && u.PasswordHash == hash);
-
-            if (user == null)
-                return Unauthorized("Invalid credentials");
-
-            var claims = new[]
+            try
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role)
-            };
-
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(_config["Jwt:Key"]!)
-            );
-
-            var token = new JwtSecurityToken(
-                issuer: _config["Jwt:Issuer"],
-                audience: _config["Jwt:Audience"],
-                claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(
-                    int.Parse(_config["Jwt:ExpiresInMinutes"]!)
-                ),
-                signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
-            );
-
-            return Ok(new
+                var result = await _authService.LoginAsync(dto);
+                return Ok(result);
+            }
+            catch (Exception ex) when (ex.Message == "Invalid credentials")
             {
-                token = new JwtSecurityTokenHandler().WriteToken(token)
-            });
+                return Unauthorized(new { message = ex.Message });
+            }
         }
     }
 }
