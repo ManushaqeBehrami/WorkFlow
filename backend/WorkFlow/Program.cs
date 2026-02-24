@@ -6,6 +6,7 @@ using WorkFlow.Data;
 using WorkFlow.Repositories;
 using WorkFlow.Services;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -100,9 +101,14 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<SeedService>();
+builder.Services.AddScoped<LocalContractFileService>();
 
 
 var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+    scope.ServiceProvider.GetRequiredService<LocalContractFileService>().EnsureSeedContractFile();
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -111,6 +117,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
+var uploadsRoot = Path.Combine(app.Environment.ContentRootPath, "uploads");
+Directory.CreateDirectory(uploadsRoot);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsRoot),
+    RequestPath = "/uploads"
+});
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();

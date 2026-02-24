@@ -1,4 +1,5 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../api/axios";
 
 export default function EmployeesPage() {
@@ -6,6 +7,7 @@ export default function EmployeesPage() {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchParams] = useSearchParams();
 
   const loadData = useCallback(async () => {
     try {
@@ -47,17 +49,18 @@ export default function EmployeesPage() {
   const handleContractUpload = async (id, file) => {
     if (!file) return;
     try {
-      await api.request("/documents", "POST", {
-        userId: id,
-        fileName: file.name,
-        fileType: file.type || "unknown",
-        fileUrl: "https://example.com/contracts/placeholder",
-      });
+      const formData = new FormData();
+      formData.append("userId", String(id));
+      formData.append("file", file);
+
+      await api.request("/documents/upload", "POST", formData);
       await loadData();
     } catch (err) {
       setError(err.message || "Unable to upload contract metadata.");
     }
   };
+
+  const focusedId = searchParams.get("focus");
 
   return (
     <div className="space-y-6">
@@ -75,9 +78,14 @@ export default function EmployeesPage() {
         {employees.map((emp) => {
           const userDocs = docsByUser[emp.id] || [];
           const latestDoc = userDocs[0];
+          const isFocused = focusedId && String(emp.id) === String(focusedId);
 
           return (
-            <div key={emp.id} className="rounded-2xl border border-slate-200/70 bg-white/80 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
+            <div key={emp.id} className={`rounded-2xl border p-5 shadow-sm ${
+              isFocused
+                ? "border-emerald-400 bg-emerald-50/40"
+                : "border-slate-200/70 bg-white/80 dark:border-slate-800 dark:bg-slate-900/70"
+            }`}>
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <p className="text-lg font-semibold text-slate-900 dark:text-white">{emp.fullName}</p>
@@ -110,9 +118,18 @@ export default function EmployeesPage() {
                 <p className="text-slate-600 dark:text-slate-300">
                   Latest contract: {latestDoc ? latestDoc.fileName : "No document"}
                 </p>
-                <button className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200">
-                  View contract
-                </button>
+                {latestDoc?.id ? (
+                  <Link
+                    className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
+                    to={`/documents/${latestDoc.id}`}
+                  >
+                    View contract
+                  </Link>
+                ) : (
+                  <span className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-400 dark:border-slate-700 dark:text-slate-500">
+                    No file
+                  </span>
+                )}
               </div>
             </div>
           );

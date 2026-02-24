@@ -42,6 +42,16 @@ namespace WorkFlow.Services
                 .Find(d => d.UserId == userId)
                 .ToListAsync();
         }
+        public async Task<Document?> GetDocumentByIdAsync(string id)
+        {
+            if (!MongoDB.Bson.ObjectId.TryParse(id, out var objectId))
+                return null;
+
+            var filter = MongoDB.Driver.Builders<Document>.Filter.Eq("_id", objectId);
+            return await _context.Documents
+                .Find(filter)
+                .FirstOrDefaultAsync();
+        }
         public async Task<List<Document>> GetAllDocumentsAsync()
         {
             return await _context.Documents.Find(_ => true).ToListAsync();

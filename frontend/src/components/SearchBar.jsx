@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/axios";
 import { useAuth } from "../context/AuthContext";
+import { Link } from "react-router-dom";
 
 export default function SearchBar() {
   const { user } = useAuth();
@@ -36,31 +37,46 @@ export default function SearchBar() {
     if (results.users?.length) {
       list.push({
         title: "Employees",
-        items: results.users.slice(0, 5).map((u) => `${u.fullName} (${u.role})`),
+        items: results.users.slice(0, 5).map((u) => ({
+          label: `${u.fullName} (${u.role})`,
+          to: `/employees?focus=${u.id}`,
+        })),
       });
     }
     if (results.payments?.length) {
       list.push({
         title: "Payments",
-        items: results.payments.slice(0, 5).map((p) => `$${p.amount} • ${p.status}`),
+        items: results.payments.slice(0, 5).map((p) => ({
+          label: `$${p.amount} • ${p.status}`,
+          to: "/payments",
+        })),
       });
     }
     if (results.leaves?.length) {
       list.push({
         title: "PTO",
-        items: results.leaves.slice(0, 5).map((l) => `${l.status} • ${new Date(l.startDate).toLocaleDateString()}`),
+        items: results.leaves.slice(0, 5).map((l) => ({
+          label: `${l.status} • ${new Date(l.startDate).toLocaleDateString()}`,
+          to: "/pto",
+        })),
       });
     }
     if (results.auditLogs?.length) {
       list.push({
         title: "Audit Logs",
-        items: results.auditLogs.slice(0, 5).map((l) => `${l.action} • ${new Date(l.timestamp).toLocaleDateString()}`),
+        items: results.auditLogs.slice(0, 5).map((l) => ({
+          label: `${l.action} • ${new Date(l.timestamp).toLocaleDateString()}`,
+          to: "/logs",
+        })),
       });
     }
     if (results.documents?.length) {
       list.push({
         title: "Documents",
-        items: results.documents.slice(0, 5).map((d) => d.fileName),
+        items: results.documents.slice(0, 5).map((d) => ({
+          label: d.fileName,
+          to: `/documents/${d.id}`,
+        })),
       });
     }
     return list;
@@ -85,9 +101,14 @@ export default function SearchBar() {
               </p>
               <div className="mt-2 space-y-1">
                 {section.items.map((item, index) => (
-                  <div key={`${section.title}-${index}`} className="text-slate-600 dark:text-slate-300">
-                    {item}
-                  </div>
+                  <Link
+                    key={`${section.title}-${index}`}
+                    to={item.to}
+                    onClick={() => setOpen(false)}
+                    className="block rounded-lg px-2 py-1 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                  >
+                    {item.label}
+                  </Link>
                 ))}
               </div>
             </div>

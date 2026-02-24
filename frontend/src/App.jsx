@@ -8,6 +8,7 @@ import Payments from "./pages/Payments";
 import AuditLogs from "./pages/AuditLogs";
 import Employees from "./pages/Employees";
 import PTORequest from "./pages/PTORequest";
+import DocumentViewer from "./pages/DocumentViewer";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -55,6 +56,14 @@ function App() {
           element={
             <ProtectedRoute roles={["HR", "Manager", "Employee"]}>
               <PTORequest />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="documents/:id"
+          element={
+            <ProtectedRoute roles={["HR", "Manager", "Employee"]}>
+              <DocumentViewer />
             </ProtectedRoute>
           }
         />

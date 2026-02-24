@@ -9,12 +9,18 @@ namespace WorkFlow.Services
         private readonly ApplicationDbContext _context;
         private readonly MongoService _mongo;
         private readonly IPasswordService _passwords;
+        private readonly LocalContractFileService _localContractFiles;
 
-        public SeedService(ApplicationDbContext context, MongoService mongo, IPasswordService passwords)
+        public SeedService(
+            ApplicationDbContext context,
+            MongoService mongo,
+            IPasswordService passwords,
+            LocalContractFileService localContractFiles)
         {
             _context = context;
             _mongo = mongo;
             _passwords = passwords;
+            _localContractFiles = localContractFiles;
         }
 
         public async Task<bool> SeedAsync()
@@ -110,8 +116,8 @@ namespace WorkFlow.Services
             {
                 UserId = employee1.Id,
                 FileName = "Employment_Contract_2026.pdf",
-                FileUrl = "https://example.com/contracts/employee1.pdf",
-                FileType = "pdf"
+                FileUrl = _localContractFiles.EnsureSeedContractFile(),
+                FileType = "application/pdf"
             });
 
             return true;
