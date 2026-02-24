@@ -50,6 +50,7 @@ services:
       Jwt__Issuer: "WorkFlow"
       Jwt__Audience: "WorkFlowUsers"
       Jwt__ExpireMinutes: "60"
+      Stripe__SecretKey: ""
     ports:
       - "7190:8080"
     volumes:
@@ -64,6 +65,7 @@ services:
       - backend
     environment:
       VITE_API_BASE: "http://localhost:7190/api"
+      VITE_STRIPE_PUBLISHABLE_KEY: "pk_test_51T4TpWQh1cOpIZLajNOOKYveqGmdvAjnARc2G230AlHWrane1swLTR2bzV78L3W2jtzLMSaaaxypB6XJIkH1Ut9K00vRgsZOPt"
     ports:
       - "5173:5173"
 

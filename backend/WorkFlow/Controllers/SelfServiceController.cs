@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using WorkFlow.Data;
+using WorkFlow.Models;
 
 namespace WorkFlow.Controllers
 {
@@ -44,6 +45,27 @@ namespace WorkFlow.Controllers
                 .ToListAsync();
 
             return Ok(payments);
+        }
+
+        // MANAGER: MY TEAM
+        [Authorize(Roles = "Manager")]
+        [HttpGet("team")]
+        public async Task<IActionResult> GetMyTeam()
+        {
+            var userId = GetUserId();
+            var team = await _context.Users
+                .Where(u => u.Role == UserRole.Employee && u.ManagerId == userId)
+                .Select(u => new
+                {
+                    u.Id,
+                    u.FullName,
+                    u.Email,
+                    Role = u.Role.ToString(),
+                    u.ManagerId
+                })
+                .ToListAsync();
+
+            return Ok(team);
         }
 
         // MY LEAVES

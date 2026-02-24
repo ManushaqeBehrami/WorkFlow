@@ -3,9 +3,11 @@ import { api } from "../../api/axios";
 
 export default function ManagerDashboard() {
   const [requests, setRequests] = useState([]);
+  const [team, setTeam] = useState([]);
 
   useEffect(() => {
     api.request("/leaves").then(setRequests).catch(() => {});
+    api.request("/me/team").then(setTeam).catch(() => {});
   }, []);
 
   const pendingCount = useMemo(
@@ -30,15 +32,37 @@ export default function ManagerDashboard() {
 
       <section className="grid gap-4 md:grid-cols-3">
         {[
-          { label: "Team Members", value: "8" },
+          { label: "Team Members", value: String(team.length) },
           { label: "Pending PTO", value: String(pendingCount) },
-          { label: "Open Projects", value: "5" },
+          { label: "Total PTO Requests", value: String(requests.length) },
         ].map((stat) => (
           <div key={stat.label} className="rounded-2xl border border-slate-200/70 bg-white/80 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{stat.label}</p>
             <p className="mt-3 text-2xl font-semibold text-slate-900 dark:text-white">{stat.value}</p>
           </div>
         ))}
+      </section>
+
+      <section className="rounded-2xl border border-slate-200/70 bg-white/80 p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">My Team</h2>
+          <span className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:text-slate-300">
+            {team.length} employees
+          </span>
+        </div>
+        <div className="mt-4 space-y-3">
+          {team.map((member) => (
+            <div key={member.id} className="rounded-xl border border-slate-200/70 bg-slate-50/80 px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-950/60">
+              <p className="font-medium text-slate-900 dark:text-white">{member.fullName}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{member.email}</p>
+            </div>
+          ))}
+          {!team.length && (
+            <div className="rounded-xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+              No team members assigned yet.
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="rounded-2xl border border-slate-200/70 bg-white/80 p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
@@ -52,7 +76,7 @@ export default function ManagerDashboard() {
           {requests.map((req) => (
             <div key={req.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200/70 bg-slate-50/80 px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-950/60">
               <div>
-                <p className="font-medium text-slate-900 dark:text-white">User #{req.userId}</p>
+                <p className="font-medium text-slate-900 dark:text-white">{req.userFullName || `User #${req.userId}`}</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(req.startDate).toLocaleDateString()} - {new Date(req.endDate).toLocaleDateString()} - {req.reason}</p>
               </div>
               <div className="flex items-center gap-2">

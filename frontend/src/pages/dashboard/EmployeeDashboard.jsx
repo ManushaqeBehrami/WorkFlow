@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../api/axios";
 import { Link } from "react-router-dom";
@@ -6,10 +6,13 @@ import { Link } from "react-router-dom";
 export default function EmployeeDashboard() {
   const { user } = useAuth();
   const [requests, setRequests] = useState([]);
+  const [payments, setPayments] = useState([]);
   const [documents, setDocuments] = useState([]);
+  const [activeTab, setActiveTab] = useState("pto");
 
   useEffect(() => {
     api.request("/me/leaves").then(setRequests).catch(() => {});
+    api.request("/me/payments").then(setPayments).catch(() => {});
     api.request("/documents/me").then(setDocuments).catch(() => {});
   }, []);
 
@@ -60,32 +63,96 @@ export default function EmployeeDashboard() {
 
       <section className="rounded-2xl border border-slate-200/70 bg-white/80 p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">PTO requests</h2>
-          <button className="rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-slate-950 hover:bg-emerald-400">
-            New request
-          </button>
+          <div className="inline-flex rounded-full border border-slate-300 p-1 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={() => setActiveTab("pto")}
+              className={`rounded-full px-4 py-1 text-xs font-semibold transition ${
+                activeTab === "pto"
+                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+              }`}
+            >
+              PTO requests
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("payments")}
+              className={`rounded-full px-4 py-1 text-xs font-semibold transition ${
+                activeTab === "payments"
+                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+              }`}
+            >
+              Payments
+            </button>
+          </div>
+          {activeTab === "pto" && (
+            <button className="rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-slate-950 hover:bg-emerald-400">
+              New request
+            </button>
+          )}
         </div>
-        <div className="mt-4 space-y-3">
-          {requests.map((req) => (
-            <div key={req.id} className="flex items-center justify-between rounded-xl border border-slate-200/70 bg-slate-50/80 px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-950/60">
-              <div>
-                <p className="font-medium text-slate-900 dark:text-white">
-                  {new Date(req.startDate).toLocaleDateString()} - {new Date(req.endDate).toLocaleDateString()}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{req.reason}</p>
+
+        {activeTab === "pto" && (
+          <div className="mt-4 space-y-3">
+            {requests.map((req) => (
+              <div key={req.id} className="flex items-center justify-between rounded-xl border border-slate-200/70 bg-slate-50/80 px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-950/60">
+                <div>
+                  <p className="font-medium text-slate-900 dark:text-white">
+                    {new Date(req.startDate).toLocaleDateString()} - {new Date(req.endDate).toLocaleDateString()}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{req.reason}</p>
+                </div>
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  req.status === "Approved"
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/20 dark:text-emerald-200"
+                    : req.status === "Declined"
+                    ? "bg-rose-100 text-rose-700 dark:bg-rose-400/20 dark:text-rose-200"
+                    : "bg-amber-100 text-amber-700 dark:bg-amber-400/20 dark:text-amber-200"
+                }`}>
+                  {req.status}
+                </span>
               </div>
-              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                req.status === "Approved"
-                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/20 dark:text-emerald-200"
-                  : req.status === "Declined"
-                  ? "bg-rose-100 text-rose-700 dark:bg-rose-400/20 dark:text-rose-200"
-                  : "bg-amber-100 text-amber-700 dark:bg-amber-400/20 dark:text-amber-200"
-              }`}>
-                {req.status}
-              </span>
-            </div>
-          ))}
-        </div>
+            ))}
+            {!requests.length && (
+              <div className="rounded-xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                No PTO requests found.
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "payments" && (
+          <div className="mt-4 space-y-3">
+            {payments.map((pay) => (
+              <div key={pay.id} className="flex items-center justify-between rounded-xl border border-slate-200/70 bg-slate-50/80 px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-950/60">
+                <div>
+                  <p className="font-medium text-slate-900 dark:text-white">
+                    ${Number(pay.amount).toLocaleString()}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {new Date(pay.paymentDate).toLocaleDateString()}
+                  </p>
+                </div>
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  pay.status === "Paid"
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/20 dark:text-emerald-200"
+                    : pay.status === "Failed"
+                    ? "bg-rose-100 text-rose-700 dark:bg-rose-400/20 dark:text-rose-200"
+                    : "bg-amber-100 text-amber-700 dark:bg-amber-400/20 dark:text-amber-200"
+                }`}>
+                  {pay.status}
+                </span>
+              </div>
+            ))}
+            {!payments.length && (
+              <div className="rounded-xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                No payments found.
+              </div>
+            )}
+          </div>
+        )}
       </section>
     </div>
   );

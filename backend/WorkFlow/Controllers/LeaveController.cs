@@ -20,6 +20,11 @@ namespace WorkFlow.Controllers
             _context = context;
         }
 
+        private int GetUserId()
+        {
+            return int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        }
+
         // EMPLOYEE: CREATE REQUEST
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateLeaveDto dto)
@@ -54,7 +59,32 @@ namespace WorkFlow.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var leaves = await _context.LeaveRequests.ToListAsync();
+            var query = _context.LeaveRequests
+                .Include(l => l.User)
+                .AsQueryable();
+
+            if (User.IsInRole("Manager"))
+            {
+                var managerId = GetUserId();
+                query = query.Where(l => l.User.ManagerId == managerId);
+            }
+
+            var leaves = await query
+                .OrderByDescending(l => l.StartDate)
+                .Select(l => new
+                {
+                    l.Id,
+                    l.UserId,
+                    UserFullName = l.User.FullName,
+                    l.StartDate,
+                    l.EndDate,
+                    l.Status,
+                    l.Type,
+                    l.Reason,
+                    l.CreatedAt
+                })
+                .ToListAsync();
+
             return Ok(leaves);
         }
 
@@ -63,8 +93,13 @@ namespace WorkFlow.Controllers
         [HttpPut("{id}/status")]
         public async Task<IActionResult> UpdateStatus(int id, string status)
         {
-            var leave = await _context.LeaveRequests.FindAsync(id);
+            var managerId = GetUserId();
+            var leave = await _context.LeaveRequests
+                .Include(l => l.User)
+                .FirstOrDefaultAsync(l => l.Id == id);
+
             if (leave == null) return NotFound();
+            if (leave.User.ManagerId != managerId) return Forbid();
 
             leave.Status = status;
             await _context.SaveChangesAsync();

@@ -22,6 +22,12 @@ namespace WorkFlow.Data
                 .HasIndex(u => u.Email)
                 .IsUnique();
 
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.Manager)
+                .WithMany(m => m.TeamMembers)
+                .HasForeignKey(u => u.ManagerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<LeaveRequest>()
                 .HasOne(l => l.User)
                 .WithMany()

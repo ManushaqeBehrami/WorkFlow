@@ -105,8 +105,13 @@ namespace WorkFlow.Controllers
             }
             else if (role == "Manager")
             {
+                var teamUserIds = await _context.Users
+                    .Where(u => u.ManagerId == userId && u.Role == UserRole.Employee)
+                    .Select(u => u.Id)
+                    .ToListAsync();
+
                 var users = await _context.Users
-                    .Where(u => u.Role == UserRole.Employee &&
+                    .Where(u => teamUserIds.Contains(u.Id) &&
                                 (EF.Functions.Like(u.FullName, $"%{term}%")
                               || EF.Functions.Like(u.Email, $"%{term}%")))
                     .Select(u => new UserResultDto
@@ -119,8 +124,9 @@ namespace WorkFlow.Controllers
                     .ToListAsync();
 
                 var leaves = await _context.LeaveRequests
-                    .Where(l => EF.Functions.Like(l.Reason, $"%{term}%")
-                             || EF.Functions.Like(l.Status, $"%{term}%"))
+                    .Where(l => teamUserIds.Contains(l.UserId) &&
+                                (EF.Functions.Like(l.Reason, $"%{term}%")
+                             || EF.Functions.Like(l.Status, $"%{term}%")))
                     .Select(l => new LeaveResultDto
                     {
                         Id = l.Id,

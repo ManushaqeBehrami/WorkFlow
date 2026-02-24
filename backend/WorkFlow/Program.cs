@@ -127,6 +127,35 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
+    // Backward-compatible schema patch for databases created before ManagerId existed.
+    db.Database.ExecuteSqlRaw(@"
+IF COL_LENGTH('dbo.Users', 'ManagerId') IS NULL
+BEGIN
+    ALTER TABLE [dbo].[Users] ADD [ManagerId] int NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = 'IX_Users_ManagerId'
+      AND object_id = OBJECT_ID('dbo.Users')
+)
+BEGIN
+    CREATE INDEX [IX_Users_ManagerId] ON [dbo].[Users]([ManagerId]);
+END;
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.foreign_keys
+    WHERE name = 'FK_Users_Users_ManagerId'
+)
+BEGIN
+    ALTER TABLE [dbo].[Users]
+    WITH CHECK ADD CONSTRAINT [FK_Users_Users_ManagerId]
+    FOREIGN KEY([ManagerId]) REFERENCES [dbo].[Users]([Id]);
+END;
+");
+
     services.GetRequiredService<LocalContractFileService>().EnsureSeedContractFile();
 }
 

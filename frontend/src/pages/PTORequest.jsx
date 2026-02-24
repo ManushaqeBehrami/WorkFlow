@@ -114,7 +114,7 @@ export default function PTORequest() {
         {visibleRequests.map((req) => (
           <div key={req.id} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200/70 bg-white/80 px-4 py-3 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
             <div>
-              <p className="font-medium text-slate-900 dark:text-white">User #{req.userId}</p>
+              <p className="font-medium text-slate-900 dark:text-white">{req.userFullName || `User #${req.userId}`}</p>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 {new Date(req.startDate).toLocaleDateString()} - {new Date(req.endDate).toLocaleDateString()} - {req.reason}
               </p>

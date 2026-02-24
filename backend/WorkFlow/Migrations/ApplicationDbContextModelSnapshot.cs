@@ -140,6 +140,9 @@ namespace WorkFlow.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("ManagerId")
+                        .HasColumnType("int");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -151,6 +154,8 @@ namespace WorkFlow.Migrations
 
                     b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("ManagerId");
 
                     b.ToTable("Users");
                 });
@@ -186,6 +191,16 @@ namespace WorkFlow.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("WorkFlow.Models.User", b =>
+                {
+                    b.HasOne("WorkFlow.Models.User", "Manager")
+                        .WithMany("TeamMembers")
+                        .HasForeignKey("ManagerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Manager");
                 });
 #pragma warning restore 612, 618
         }

@@ -60,6 +60,10 @@ namespace WorkFlow.Services
             _context.Users.AddRange(hr, manager, employee1, employee2);
             await _context.SaveChangesAsync();
 
+            employee1.ManagerId = manager.Id;
+            employee2.ManagerId = manager.Id;
+            await _context.SaveChangesAsync();
+
             _context.Salaries.AddRange(
                 new Salary { UserId = employee1.Id, BaseAmount = 3200 },
                 new Salary { UserId = employee2.Id, BaseAmount = 2800 }
@@ -76,6 +80,7 @@ namespace WorkFlow.Services
                     UserId = employee1.Id,
                     StartDate = DateTime.UtcNow.AddDays(7),
                     EndDate = DateTime.UtcNow.AddDays(9),
+                    Type = "PTO",
                     Reason = "Family event",
                     Status = "Pending"
                 },
@@ -84,6 +89,7 @@ namespace WorkFlow.Services
                     UserId = employee2.Id,
                     StartDate = DateTime.UtcNow.AddDays(14),
                     EndDate = DateTime.UtcNow.AddDays(16),
+                    Type = "PTO",
                     Reason = "Medical",
                     Status = "Approved"
                 }
