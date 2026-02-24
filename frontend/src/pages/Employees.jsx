@@ -16,7 +16,7 @@ export default function EmployeesPage() {
         api.request("/users"),
         api.request("/documents"),
       ]);
-      setEmployees(usersData);
+      setEmployees(usersData.filter((user) => user.role !== "HR"));
       setDocuments(docsData);
     } catch (err) {
       setError(err.message || "Unable to load employees.");

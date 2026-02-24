@@ -5,7 +5,8 @@ import { api } from "../api/axios";
 export default function PTORequest() {
   const { user } = useAuth();
   const [requests, setRequests] = useState([]);
-  const [dates, setDates] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -47,21 +48,21 @@ export default function PTORequest() {
 
   const submitRequest = async (e) => {
     e.preventDefault();
-    if (!dates || !reason) return;
-
-    const [start, end] = dates.split("-").map((d) => d.trim());
-    if (!start || !end) {
-      setError("Please use a date range like 2026-03-04 - 2026-03-06");
+    if (!startDate || !endDate || !reason) return;
+    if (new Date(startDate) > new Date(endDate)) {
+      setError("Start date cannot be after end date.");
       return;
     }
 
     try {
+      setError("");
       await api.request("/leaves", "POST", {
-        startDate: start,
-        endDate: end,
+        startDate,
+        endDate,
         reason,
       });
-      setDates("");
+      setStartDate("");
+      setEndDate("");
       setReason("");
       await loadRequests();
     } catch (err) {
@@ -81,12 +82,18 @@ export default function PTORequest() {
       </div>
 
       {!isHR && !isManager && (
-        <form onSubmit={submitRequest} className="grid gap-4 rounded-2xl border border-slate-200/70 bg-white/80 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 md:grid-cols-[1.2fr_1fr_auto]">
+        <form onSubmit={submitRequest} className="grid gap-4 rounded-2xl border border-slate-200/70 bg-white/80 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 md:grid-cols-[1fr_1fr_1.2fr_auto]">
           <input
+            type="date"
             className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
-            placeholder="Dates (e.g. 2026-03-04 - 2026-03-06)"
-            value={dates}
-            onChange={(e) => setDates(e.target.value)}
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+          <input
+            type="date"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
           />
           <input
             className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"

@@ -22,8 +22,13 @@ namespace WorkFlow.Controllers
 
         // EMPLOYEE: CREATE REQUEST
         [HttpPost]
-        public async Task<IActionResult> Create(CreateLeaveDto dto)
+        public async Task<IActionResult> Create([FromBody] CreateLeaveDto dto)
         {
+            if (!ModelState.IsValid)
+                return ValidationProblem(ModelState);
+            if (dto.StartDate > dto.EndDate)
+                return BadRequest(new { message = "StartDate cannot be after EndDate." });
+
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrWhiteSpace(userIdClaim))
                 return Unauthorized();
@@ -34,6 +39,7 @@ namespace WorkFlow.Controllers
                 UserId = userId,
                 StartDate = dto.StartDate,
                 EndDate = dto.EndDate,
+                Type = string.IsNullOrWhiteSpace(dto.Type) ? "PTO" : dto.Type.Trim(),
                 Reason = dto.Reason
             };
 
