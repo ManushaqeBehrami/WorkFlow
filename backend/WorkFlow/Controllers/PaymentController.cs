@@ -6,6 +6,7 @@ using WorkFlow.DTOs;
 using WorkFlow.Models;
 using WorkFlow.Services;
 using WorkFlow.MongoModels;
+using Stripe;
 
 namespace WorkFlow.Controllers
 {
@@ -26,7 +27,7 @@ namespace WorkFlow.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] int? userId, [FromQuery] string? status)
         {
-            var query = _context.Payments.AsQueryable();
+            var query = _context.Payments.Include(p => p.User).AsQueryable();
 
             if (userId.HasValue)
                 query = query.Where(p => p.UserId == userId.Value);
@@ -34,17 +35,38 @@ namespace WorkFlow.Controllers
             if (!string.IsNullOrEmpty(status))
                 query = query.Where(p => p.Status == status);
 
-            var payments = await query.ToListAsync();
+            var payments = await query
+                .OrderByDescending(p => p.PaymentDate)
+                .Select(p => new PaymentDto
+                {
+                    Id = p.Id,
+                    UserId = p.UserId,
+                    UserFullName = p.User.FullName,
+                    Amount = p.Amount,
+                    Status = p.Status,
+                    PaymentDate = p.PaymentDate,
+                    TransactionReference = p.TransactionReference
+                })
+                .ToListAsync();
             return Ok(payments);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var payment = await _context.Payments.FindAsync(id);
+            var payment = await _context.Payments.Include(p => p.User).FirstOrDefaultAsync(p => p.Id == id);
             if (payment == null) return NotFound();
 
-            return Ok(payment);
+            return Ok(new PaymentDto
+            {
+                Id = payment.Id,
+                UserId = payment.UserId,
+                UserFullName = payment.User.FullName,
+                Amount = payment.Amount,
+                Status = payment.Status,
+                PaymentDate = payment.PaymentDate,
+                TransactionReference = payment.TransactionReference
+            });
         }
 
         [HttpPost("{userId}")]
@@ -84,6 +106,73 @@ namespace WorkFlow.Controllers
             return Ok(payment);
         }
 
+        [HttpPost("intent")]
+        public async Task<IActionResult> CreatePaymentIntent(CreatePaymentIntentDto dto, [FromServices] IConfiguration config)
+        {
+            if (dto.Amount <= 0) return BadRequest("Amount must be greater than 0.");
+
+            StripeConfiguration.ApiKey = config["Stripe:SecretKey"];
+            if (string.IsNullOrWhiteSpace(StripeConfiguration.ApiKey))
+                return BadRequest("Stripe secret key is not configured.");
+
+            var service = new PaymentIntentService();
+            var intent = await service.CreateAsync(new PaymentIntentCreateOptions
+            {
+                Amount = (long)(dto.Amount * 100),
+                Currency = dto.Currency,
+                Metadata = new Dictionary<string, string>
+                {
+                    { "userId", dto.UserId.ToString() }
+                }
+            });
+
+            return Ok(new { clientSecret = intent.ClientSecret, paymentIntentId = intent.Id });
+        }
+
+        [HttpPost("record")]
+        public async Task<IActionResult> RecordPayment(RecordPaymentDto dto)
+        {
+            var user = await _context.Users.FindAsync(dto.UserId);
+            if (user == null) return NotFound("User not found");
+
+            var payment = new Payment
+            {
+                UserId = dto.UserId,
+                Amount = dto.Amount,
+                Status = dto.Status,
+                PaymentDate = DateTime.UtcNow,
+                TransactionReference = dto.PaymentIntentId
+            };
+
+            _context.Payments.Add(payment);
+            await _context.SaveChangesAsync();
+
+            await _mongo.AddLogAsync(new AuditLog
+            {
+                UserId = dto.UserId,
+                Action = "PaymentRecorded",
+                PerformedBy = User.Identity?.Name ?? "HR",
+                Details = $"Payment recorded: {dto.Amount}"
+            });
+
+            await _mongo.AddNotificationAsync(new MongoModels.Notification
+            {
+                UserId = dto.UserId,
+                Message = "A payment has been processed."
+            });
+
+            return Ok(new PaymentDto
+            {
+                Id = payment.Id,
+                UserId = payment.UserId,
+                UserFullName = user.FullName,
+                Amount = payment.Amount,
+                Status = payment.Status,
+                PaymentDate = payment.PaymentDate,
+                TransactionReference = payment.TransactionReference
+            });
+        }
+
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, UpdatePaymentDto dto)
         {
@@ -112,7 +201,17 @@ namespace WorkFlow.Controllers
                 Details = $"Payment {id} updated"
             });
 
-            return Ok(payment);
+            var user = await _context.Users.FindAsync(payment.UserId);
+            return Ok(new PaymentDto
+            {
+                Id = payment.Id,
+                UserId = payment.UserId,
+                UserFullName = user?.FullName ?? "",
+                Amount = payment.Amount,
+                Status = payment.Status,
+                PaymentDate = payment.PaymentDate,
+                TransactionReference = payment.TransactionReference
+            });
         }
 
         [HttpDelete("{id}")]

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using WorkFlow.Data;
 using WorkFlow.DTOs;
 using WorkFlow.Models;
@@ -23,9 +24,14 @@ namespace WorkFlow.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(CreateLeaveDto dto)
         {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userIdClaim))
+                return Unauthorized();
+            var userId = int.Parse(userIdClaim);
+
             var leave = new LeaveRequest
             {
-                UserId = dto.UserId,
+                UserId = userId,
                 StartDate = dto.StartDate,
                 EndDate = dto.EndDate,
                 Reason = dto.Reason
@@ -38,7 +44,7 @@ namespace WorkFlow.Controllers
         }
 
         // HR: VIEW ALL REQUESTS
-        [Authorize(Roles = "HR")]
+        [Authorize(Roles = "HR,Manager")]
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -46,8 +52,8 @@ namespace WorkFlow.Controllers
             return Ok(leaves);
         }
 
-        // HR: APPROVE / REJECT
-        [Authorize(Roles = "HR")]
+        // MANAGER: APPROVE / REJECT
+        [Authorize(Roles = "Manager")]
         [HttpPut("{id}/status")]
         public async Task<IActionResult> UpdateStatus(int id, string status)
         {

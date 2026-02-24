@@ -25,6 +25,13 @@ namespace WorkFlow.Services
                 .Find(n => n.UserId == userId)
                 .ToListAsync();
         }
+        public async Task<List<AuditLog>> GetAuditLogsAsync(int? userId = null)
+        {
+            var query = userId.HasValue
+                ? _context.AuditLogs.Find(l => l.UserId == userId.Value)
+                : _context.AuditLogs.Find(_ => true);
+            return await query.ToListAsync();
+        }
         public async Task AddDocumentAsync(Document document)
         {
             await _context.Documents.InsertOneAsync(document);
@@ -34,6 +41,10 @@ namespace WorkFlow.Services
             return await _context.Documents
                 .Find(d => d.UserId == userId)
                 .ToListAsync();
+        }
+        public async Task<List<Document>> GetAllDocumentsAsync()
+        {
+            return await _context.Documents.Find(_ => true).ToListAsync();
         }
     }
 }
