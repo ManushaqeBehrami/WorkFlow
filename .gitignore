@@ -53,3 +53,7 @@ CodeCoverage/
 TestResult.xml
 nunit-*.xml
 .vs
+frontend/node_modules/
+frontend/dist/
+mongo-data/
+backend/WorkFlow/uploads/

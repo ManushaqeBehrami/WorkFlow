@@ -105,9 +105,29 @@ builder.Services.AddScoped<LocalContractFileService>();
 
 
 var app = builder.Build();
+
 using (var scope = app.Services.CreateScope())
 {
-    scope.ServiceProvider.GetRequiredService<LocalContractFileService>().EnsureSeedContractFile();
+    var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+    var db = services.GetRequiredService<ApplicationDbContext>();
+
+    const int maxDbRetries = 20;
+    for (var attempt = 1; attempt <= maxDbRetries; attempt++)
+    {
+        try
+        {
+            db.Database.Migrate();
+            break;
+        }
+        catch (Exception ex) when (attempt < maxDbRetries)
+        {
+            logger.LogWarning(ex, "Database is not ready yet. Retry {Attempt}/{MaxRetries} in 3s...", attempt, maxDbRetries);
+            Thread.Sleep(TimeSpan.FromSeconds(3));
+        }
+    }
+
+    services.GetRequiredService<LocalContractFileService>().EnsureSeedContractFile();
 }
 
 if (app.Environment.IsDevelopment())

@@ -1,4 +1,4 @@
-﻿const API_BASE = "https://localhost:7190/api";
+const API_BASE = import.meta.env.VITE_API_BASE || "https://localhost:7190/api";
 
 export const api = {
   async request(endpoint, method = "GET", body) {
@@ -24,3 +24,4 @@ export const api = {
 };
 
 export const apiRequest = (endpoint, method, body) => api.request(endpoint, method, body);
+
