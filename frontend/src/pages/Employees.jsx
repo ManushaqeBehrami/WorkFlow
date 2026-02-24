@@ -37,12 +37,37 @@ export default function EmployeesPage() {
     }, {});
   }, [documents]);
 
+  const managers = useMemo(
+    () => employees.filter((u) => u.role === "Manager"),
+    [employees]
+  );
+
   const handleRoleChange = async (id, role) => {
     try {
       await api.request(`/users/${id}/role?role=${role}`, "PUT");
-      setEmployees((prev) => prev.map((emp) => (emp.id === id ? { ...emp, role } : emp)));
+      setEmployees((prev) =>
+        prev.map((emp) =>
+          emp.id === id
+            ? { ...emp, role, managerId: role === "Employee" ? emp.managerId : null }
+            : emp
+        )
+      );
     } catch (err) {
       setError(err.message || "Unable to update role.");
+    }
+  };
+
+  const handleManagerAssign = async (id, managerId) => {
+    try {
+      const query = managerId ? `?managerId=${managerId}` : "";
+      await api.request(`/users/${id}/manager${query}`, "PUT");
+      setEmployees((prev) =>
+        prev.map((emp) =>
+          emp.id === id ? { ...emp, managerId: managerId ? Number(managerId) : null } : emp
+        )
+      );
+    } catch (err) {
+      setError(err.message || "Unable to assign manager.");
     }
   };
 
@@ -102,6 +127,21 @@ export default function EmployeesPage() {
                     <option value="Manager">Manager</option>
                     <option value="HR">HR</option>
                   </select>
+
+                  {emp.role === "Employee" && (
+                    <select
+                      value={emp.managerId ?? ""}
+                      onChange={(e) => handleManagerAssign(emp.id, e.target.value)}
+                      className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
+                    >
+                      <option value="">Unassigned manager</option>
+                      {managers.map((mgr) => (
+                        <option key={mgr.id} value={mgr.id}>
+                          {mgr.fullName}
+                        </option>
+                      ))}
+                    </select>
+                  )}
 
                   <label className="cursor-pointer rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-400 dark:border-slate-700 dark:text-slate-300">
                     Upload contract

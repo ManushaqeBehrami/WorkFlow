@@ -44,9 +44,35 @@ namespace WorkFlow.Controllers
             if (user == null) return NotFound();
 
             user.Role = role;
+            if (role != UserRole.Employee)
+                user.ManagerId = null;
             await _context.SaveChangesAsync();
 
             return Ok(user);
+        }
+
+        // ASSIGN/UNASSIGN EMPLOYEE TO MANAGER
+        [HttpPut("{id}/manager")]
+        public async Task<IActionResult> UpdateManager(int id, [FromQuery] int? managerId)
+        {
+            var employee = await _context.Users.FindAsync(id);
+            if (employee == null) return NotFound();
+            if (employee.Role != UserRole.Employee)
+                return BadRequest("Only employees can be assigned to a manager.");
+
+            if (managerId.HasValue)
+            {
+                if (managerId.Value == id)
+                    return BadRequest("Employee cannot be their own manager.");
+
+                var manager = await _context.Users.FindAsync(managerId.Value);
+                if (manager == null || manager.Role != UserRole.Manager)
+                    return BadRequest("Selected manager is invalid.");
+            }
+
+            employee.ManagerId = managerId;
+            await _context.SaveChangesAsync();
+            return Ok(employee);
         }
 
         // DELETE USER
