@@ -1,4 +1,4 @@
-﻿using MongoDB.Driver;
+using MongoDB.Driver;
 using WorkFlow.Data;
 using WorkFlow.MongoModels;
 
@@ -23,7 +23,27 @@ namespace WorkFlow.Services
         {
             return await _context.Notifications
                 .Find(n => n.UserId == userId)
+                .SortByDescending(n => n.CreatedAt)
                 .ToListAsync();
+        }
+        public async Task<bool> MarkNotificationReadAsync(int userId, string notificationId)
+        {
+            if (!MongoDB.Bson.ObjectId.TryParse(notificationId, out var objectId))
+                return false;
+
+            var filter = Builders<Notification>.Filter.Eq("_id", objectId)
+                       & Builders<Notification>.Filter.Eq(n => n.UserId, userId);
+            var update = Builders<Notification>.Update.Set(n => n.IsRead, true);
+            var result = await _context.Notifications.UpdateOneAsync(filter, update);
+            return result.ModifiedCount > 0;
+        }
+        public async Task<long> MarkAllNotificationsReadAsync(int userId)
+        {
+            var filter = Builders<Notification>.Filter.Eq(n => n.UserId, userId)
+                       & Builders<Notification>.Filter.Eq(n => n.IsRead, false);
+            var update = Builders<Notification>.Update.Set(n => n.IsRead, true);
+            var result = await _context.Notifications.UpdateManyAsync(filter, update);
+            return result.ModifiedCount;
         }
         public async Task<List<AuditLog>> GetAuditLogsAsync(int? userId = null)
         {

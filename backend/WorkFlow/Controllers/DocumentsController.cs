@@ -124,6 +124,11 @@ namespace WorkFlow.Controllers
             };
 
             await _mongo.AddDocumentAsync(document);
+            await _mongo.AddNotificationAsync(new Notification
+            {
+                UserId = dto.UserId,
+                Message = $"A new contract document \"{file.FileName}\" has been uploaded for you."
+            });
             return Ok(document);
         }
 

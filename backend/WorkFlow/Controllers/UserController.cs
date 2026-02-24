@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WorkFlow.Data;
 using WorkFlow.Models;
+using WorkFlow.Services;
 
 namespace WorkFlow.Controllers
 {
@@ -12,10 +13,12 @@ namespace WorkFlow.Controllers
     public class UserController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly MongoService _mongo;
 
-        public UserController(ApplicationDbContext context)
+        public UserController(ApplicationDbContext context, MongoService mongo)
         {
             _context = context;
+            _mongo = mongo;
         }
 
         // GET ALL USERS
@@ -48,6 +51,12 @@ namespace WorkFlow.Controllers
                 user.ManagerId = null;
             await _context.SaveChangesAsync();
 
+            await _mongo.AddNotificationAsync(new WorkFlow.MongoModels.Notification
+            {
+                UserId = user.Id,
+                Message = $"Your role has been updated to {role}."
+            });
+
             return Ok(user);
         }
 
@@ -72,6 +81,34 @@ namespace WorkFlow.Controllers
 
             employee.ManagerId = managerId;
             await _context.SaveChangesAsync();
+
+            if (managerId.HasValue)
+            {
+                var manager = await _context.Users.FindAsync(managerId.Value);
+                if (manager != null)
+                {
+                    await _mongo.AddNotificationAsync(new WorkFlow.MongoModels.Notification
+                    {
+                        UserId = employee.Id,
+                        Message = $"You have been assigned to manager {manager.FullName}."
+                    });
+
+                    await _mongo.AddNotificationAsync(new WorkFlow.MongoModels.Notification
+                    {
+                        UserId = manager.Id,
+                        Message = $"{employee.FullName} has been assigned to your team."
+                    });
+                }
+            }
+            else
+            {
+                await _mongo.AddNotificationAsync(new WorkFlow.MongoModels.Notification
+                {
+                    UserId = employee.Id,
+                    Message = "You have been unassigned from your manager."
+                });
+            }
+
             return Ok(employee);
         }
 
@@ -89,3 +126,4 @@ namespace WorkFlow.Controllers
         }
     }
 }
+

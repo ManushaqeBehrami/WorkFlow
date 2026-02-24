@@ -97,7 +97,7 @@ namespace WorkFlow.Controllers
                 Details = $"Salary paid: {salary.BaseAmount}"
             });
 
-            await _mongo.AddNotificationAsync(new MongoModels.Notification
+            await _mongo.AddNotificationAsync(new WorkFlow.MongoModels.Notification
             {
                 UserId = userId,
                 Message = "Your salary has been paid."
@@ -155,7 +155,7 @@ namespace WorkFlow.Controllers
                 Details = $"Payment recorded: {dto.Amount}"
             });
 
-            await _mongo.AddNotificationAsync(new MongoModels.Notification
+            await _mongo.AddNotificationAsync(new WorkFlow.MongoModels.Notification
             {
                 UserId = dto.UserId,
                 Message = "A payment has been processed."

@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using WorkFlow.Data;
 using WorkFlow.DTOs;
 using WorkFlow.Models;
+using WorkFlow.Services;
 
 namespace WorkFlow.Controllers
 {
@@ -14,10 +15,12 @@ namespace WorkFlow.Controllers
     public class LeaveController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly MongoService _mongo;
 
-        public LeaveController(ApplicationDbContext context)
+        public LeaveController(ApplicationDbContext context, MongoService mongo)
         {
             _context = context;
+            _mongo = mongo;
         }
 
         private int GetUserId()
@@ -50,6 +53,25 @@ namespace WorkFlow.Controllers
 
             _context.LeaveRequests.Add(leave);
             await _context.SaveChangesAsync();
+
+            var employee = await _context.Users.FindAsync(userId);
+            if (employee != null)
+            {
+                await _mongo.AddNotificationAsync(new WorkFlow.MongoModels.Notification
+                {
+                    UserId = userId,
+                    Message = $"Your PTO request ({dto.StartDate:yyyy-MM-dd} to {dto.EndDate:yyyy-MM-dd}) was submitted."
+                });
+
+                if (employee.ManagerId.HasValue)
+                {
+                    await _mongo.AddNotificationAsync(new WorkFlow.MongoModels.Notification
+                    {
+                        UserId = employee.ManagerId.Value,
+                        Message = $"{employee.FullName} submitted a PTO request ({dto.StartDate:yyyy-MM-dd} to {dto.EndDate:yyyy-MM-dd})."
+                    });
+                }
+            }
 
             return Ok(leave);
         }
@@ -103,6 +125,12 @@ namespace WorkFlow.Controllers
 
             leave.Status = status;
             await _context.SaveChangesAsync();
+
+            await _mongo.AddNotificationAsync(new WorkFlow.MongoModels.Notification
+            {
+                UserId = leave.UserId,
+                Message = $"Your PTO request for {leave.StartDate:yyyy-MM-dd} to {leave.EndDate:yyyy-MM-dd} was {status}."
+            });
 
             return Ok(leave);
         }
